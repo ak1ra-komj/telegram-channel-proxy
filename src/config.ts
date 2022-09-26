@@ -20,7 +20,7 @@ export const config = {
         mirage: true,
     },
 
-    hostRegex: /(t\.me|telegram\.org|cdn\d\.telegram-cdn\.org|fonts\.(googleapis|gstatic)\.com)/gi,
+    regex: /((href|src|content)="|url\('?)((https?:)?\/\/(t\.me|telegram\.org|cdn\d\.telegram-cdn\.org|fonts\.(googleapis|gstatic)\.com)\/)/g,
 }
 
 export const prefixToHost: Record<string, string> = {

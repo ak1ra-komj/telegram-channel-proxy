@@ -11,16 +11,20 @@ export async function handleRequest(
 
     const upstreamUrl = toUpstreamUrl(url, domain, channel);
     const resp = await fetch(new Request(upstreamUrl.toString(), request), {cf: config.cf});
+    const respText = await resp.text();
 
-    // rewrite HTML urls
     const contentType = resp.headers.get("content-type");
-    if (contentType !== null && contentType.startsWith("text/html")) {
-        const rewriter = new HTMLRewriter()
-            .on("a", new AttributeRewriter("href", domain, channel, upstreamUrl))
-            .on("img", new AttributeRewriter("src", domain, channel, upstreamUrl))
-            .on("script", new AttributeRewriter("src", domain, channel, upstreamUrl))
-            .on("link", new AttributeRewriter("href", domain, channel, upstreamUrl));
-        return rewriter.transform(resp);
+    // replace HTML and CSS URLs
+    if (contentType !== null && /text\/(html|css)/i.test(contentType)) {
+        const replacedRespText = respText.replaceAll(
+            config.regex,
+            (match, g1, g2, g3, g4, g5, offset, string, groups): string => {
+                const key: string = g1 !== undefined ? g1 : "";
+                const prefix: string = g5 !== undefined && hostToPrefix.hasOwnProperty(g5) ? hostToPrefix[g5] : "";
+                return `${key}${prefix}/`;
+            }
+        );
+        return new Response(replacedRespText, resp);
     } else {
         return resp;
     }
@@ -68,7 +72,7 @@ export class AttributeRewriter {
     domain: string;
     channel: string;
     referer: URL;
-    regex = config.hostRegex;
+    regex = config.regex;
 
     constructor(attributeName: string, domain: string, channel: string, referer: URL) {
         this.attributeName = attributeName;
